@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: kari-panel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+        - name: celery-worker
+          image: ghcr.io/NargesKari/kari-backend:latest
+          imagePullPolicy: Always
+          command: ["celery", "-A", "kari_backend", "worker", "-l", "info"]
+          envFrom:
+            - configMapRef:
+                name: kari-config
+            - secretRef:
+                name: kari-secrets
+          volumeMounts:
+            - name: backups-storage
+              mountPath: /backups
+      volumes:
+        - name: backups-storage
+          persistentVolumeClaim:
+            claimName: backups-pvc
