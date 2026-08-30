@@ -1,0 +1,22 @@
+# Python / Django
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3
+.env
+venv/
+env/
+*.egg-info/
+
+# Node / React / Vite
+node_modules/
+dist/
+.env.local
+.env.*.local
+
+.vscode/
+.idea/
+*.log
+.DS_Store
+
+backend/backups/

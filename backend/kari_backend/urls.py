@@ -1,0 +1,10 @@
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("cluster", include("clusters.urls")),
+    path("namespace", include("namespaces.urls")),
+    path("app", include("k8sapps.urls")),
+    path("backup", include("backups.urls")),
+]

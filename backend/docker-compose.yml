@@ -1,0 +1,72 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: kari
+      POSTGRES_USER: kari
+      POSTGRES_PASSWORD: kari
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - backups_data:/backups
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: kari
+      POSTGRES_USER: kari
+      POSTGRES_PASSWORD: kari
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_DEBUG: "1"
+    depends_on:
+      - db
+      - redis
+
+  celery-worker:
+    build: .
+    command: celery -A kari_backend worker -l info
+    volumes:
+      - .:/app
+      - backups_data:/backups
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: kari
+      POSTGRES_USER: kari
+      POSTGRES_PASSWORD: kari
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build: .
+    command: celery -A kari_backend beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: kari
+      POSTGRES_USER: kari
+      POSTGRES_PASSWORD: kari
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  db_data:
+  backups_data:
