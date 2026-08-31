@@ -13,8 +13,8 @@ echo <YOUR_GITHUB_PAT> | docker login ghcr.io -u <your-github-username> --passwo
 
 ```bash
 cd backend   # or kari-backend, depending on what you renamed it to
-docker build -t ghcr.io/NargesKari/kari-backend:latest .
-docker push ghcr.io/NargesKari/kari-backend:latest
+docker build -t ghcr.io/nargeskari/kari-backend:latest .
+docker push ghcr.io/nargeskari/kari-backend:latest
 ```
 
 Remember to make the package **public** on GitHub the first time

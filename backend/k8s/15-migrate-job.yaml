@@ -10,7 +10,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrate
-          image: ghcr.io/NargesKari/kari-backend:latest
+          image: ghcr.io/nargeskari/kari-backend:latest
           imagePullPolicy: Always
           command: ["python", "manage.py", "migrate", "--noinput"]
           envFrom:

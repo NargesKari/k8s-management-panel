@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: celery-worker
-          image: ghcr.io/NargesKari/kari-backend:latest
+          image: ghcr.io/nargeskari/kari-backend:latest
           imagePullPolicy: Always
           command: ["celery", "-A", "kari_backend", "worker", "-l", "info"]
           envFrom:
