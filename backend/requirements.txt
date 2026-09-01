@@ -7,3 +7,4 @@ redis==5.0.4
 django-celery-beat==2.6.0
 gunicorn==22.0.0
 python-dotenv==1.0.1
+django-prometheus==2.3.1

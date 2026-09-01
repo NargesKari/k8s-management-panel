@@ -13,7 +13,7 @@ class KubeConnectionError(Exception):
 def build_api_client(cluster):
     configuration = k8s_client.Configuration()
     configuration.host = f"https://{cluster.address}"
-    configuration.api_key = {"authorization": f"Bearer {cluster.token}"}
+    configuration.api_key = {"authorization": cluster.token}
     configuration.api_key_prefix = {"authorization": "Bearer"}
     # Note: verify_ssl is disabled for simplicity in this exercise.
     # In a real deployment, set the cluster's CA certificate instead.

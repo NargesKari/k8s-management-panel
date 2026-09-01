@@ -7,4 +7,5 @@ urlpatterns = [
     path("namespace", include("namespaces.urls")),
     path("app", include("k8sapps.urls")),
     path("backup", include("backups.urls")),
+    path("", include("django_prometheus.urls")),
 ]
