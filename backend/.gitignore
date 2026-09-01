@@ -6,5 +6,4 @@ venv/
 env/
 .vscode/
 *.log
-/backups/
 k8s/06-secret.yaml
