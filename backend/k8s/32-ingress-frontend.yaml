@@ -1,0 +1,21 @@
+# Apply this once the frontend is deployed and frontend-service exists.
+# Until then, applying it early is harmless - it will just 503 on "/".
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kari-ingress-frontend
+  namespace: kari-panel
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: kari.osdl.ir
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
