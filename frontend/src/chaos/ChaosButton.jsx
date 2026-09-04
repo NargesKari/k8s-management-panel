@@ -10,15 +10,24 @@ function formatRemaining(ms) {
 }
 
 export default function ChaosButton() {
-  const { chaosActive, remainingMs } = useChaos();
+  const { chaosActive, remainingMs, setSudokuOpen } = useChaos();
   const [open, setOpen] = useState(false);
+
+  const show = () => {
+    setOpen(true);
+    setSudokuOpen(true);
+  };
+  const hide = () => {
+    setOpen(false);
+    setSudokuOpen(false);
+  };
 
   return (
     <>
-      <button className="chaos-fab" onClick={() => setOpen(true)} title="Emergency chaos stop">
+      <button className="chaos-fab" onClick={show} title="Emergency chaos stop">
         {chaosActive ? "🛑 make it stop" : `😌 calm for ${formatRemaining(remainingMs)}`}
       </button>
-      <SudokuModal open={open} onClose={() => setOpen(false)} />
+      <SudokuModal open={open} onClose={hide} />
     </>
   );
 }

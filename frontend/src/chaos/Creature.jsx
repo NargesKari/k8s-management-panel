@@ -2,22 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import { useChaos } from "./ChaosContext.jsx";
 import CreatureSvg from "./CreatureSvg.jsx";
 
-const EDGES = ["top", "bottom", "left", "right"];
-
+// Spawn somewhere safely inside the viewport (not at the very edges, so it
+// never ends up partially or fully off-screen), avoiding the top bar and
+// the bottom-right corner where the chaos button lives.
 function randomSpawn() {
-  const edge = EDGES[Math.floor(Math.random() * EDGES.length)];
-  const along = 10 + Math.random() * 80; // % along that edge, avoid corners
-  return { edge, along };
+  const top = 18 + Math.random() * 55; // 18% - 73% of viewport height
+  const left = 8 + Math.random() * 74; // 8% - 82% of viewport width
+  const variant = Math.random() < 0.3 ? "purple" : "green";
+  return { top, left, variant };
 }
 
 export default function Creature() {
-  const { chaosActive } = useChaos();
+  const { spawnAllowed, addLife, loseLife } = useChaos();
   const [visible, setVisible] = useState(false);
   const [spawn, setSpawn] = useState(randomSpawn);
   const timers = useRef([]);
+  const clickedRef = useRef(false);
 
   useEffect(() => {
-    if (!chaosActive) {
+    if (!spawnAllowed) {
       setVisible(false);
       return;
     }
@@ -27,13 +30,21 @@ export default function Creature() {
       const delay = 7000 + Math.random() * 6000; // every ~7-13s
       const t = setTimeout(() => {
         if (cancelled) return;
-        setSpawn(randomSpawn());
+        clickedRef.current = false;
+        const newSpawn = randomSpawn();
+        setSpawn(newSpawn);
         setVisible(true);
         const t2 = setTimeout(() => {
-          if (!cancelled) setVisible(false);
-        }, 2400);
+          if (cancelled) return;
+          setVisible(false);
+          // Missing a green (friendly) creature costs a life. Missing the
+          // purple one is free - it's only bad if you hit it.
+          if (!clickedRef.current && newSpawn.variant === "green") {
+            loseLife(1);
+          }
+          scheduleNext();
+        }, 2600);
         timers.current.push(t2);
-        scheduleNext();
       }, delay);
       timers.current.push(t);
     };
@@ -44,22 +55,29 @@ export default function Creature() {
       timers.current.forEach(clearTimeout);
       timers.current = [];
     };
-  }, [chaosActive]);
+  }, [spawnAllowed]);
 
-  if (!chaosActive) return null;
+  if (!spawnAllowed) return null;
 
-  const posStyle =
-    spawn.edge === "top" || spawn.edge === "bottom"
-      ? { left: `${spawn.along}%` }
-      : { top: `${spawn.along}%` };
+  const handleClick = () => {
+    if (clickedRef.current) return;
+    clickedRef.current = true;
+    setVisible(false);
+    if (spawn.variant === "green") {
+      addLife();
+    } else {
+      loseLife(1);
+    }
+  };
 
   return (
-    <div
-      className={`creature creature-${spawn.edge} ${visible ? "creature-visible" : ""}`}
-      style={posStyle}
-      aria-hidden="true"
+    <button
+      className={`creature ${visible ? "creature-visible" : ""}`}
+      style={{ top: `${spawn.top}%`, left: `${spawn.left}%` }}
+      onClick={handleClick}
+      aria-label={spawn.variant === "green" ? "friendly creature" : "dangerous creature"}
     >
-      <CreatureSvg />
-    </div>
+      <CreatureSvg variant={spawn.variant} />
+    </button>
   );
 }

@@ -4,22 +4,26 @@ import NamespacesPage from "./pages/NamespacesPage.jsx";
 import AppsPage from "./pages/AppsPage.jsx";
 import AppDetailPage from "./pages/AppDetailPage.jsx";
 import Creature from "./chaos/Creature.jsx";
+import Skeleton from "./chaos/Skeleton.jsx";
 import ChaosButton from "./chaos/ChaosButton.jsx";
+import LockOverlay from "./chaos/LockOverlay.jsx";
+import LivesHud from "./chaos/LivesHud.jsx";
 
 export default function App() {
   return (
     <div className="app-shell">
       <Creature />
+      <Skeleton />
       <ChaosButton />
+      <LockOverlay />
 
       <header className="topbar">
         <Link to="/" className="brand">
           <span className="brand-mark">K</span>
           <span>Kari Panel</span>
+          <span aria-hidden="true">👾</span>
         </Link>
-        <span style={{ color: "var(--text-tertiary)", fontSize: 13 }}>
-          Kubernetes management console
-        </span>
+        <LivesHud />
       </header>
 
       <main className="main">
