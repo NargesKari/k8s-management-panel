@@ -19,9 +19,8 @@ export default function App() {
 
       <header className="topbar">
         <Link to="/" className="brand">
-          <span className="brand-mark">K</span>
+          <span className="brand-mark">👾</span>
           <span>Kari Panel</span>
-          <span aria-hidden="true">👾</span>
         </Link>
         <LivesHud />
       </header>
