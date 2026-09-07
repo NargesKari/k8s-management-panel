@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { FolderTree, Plus, X, ArrowRight, Trash2, FolderPlus } from "lucide-react";
 import api, { extractErrorMessage } from "../api/client.js";
 import { LoadingRow, ErrorBanner, EmptyState } from "../components/StateViews.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
@@ -94,30 +95,25 @@ export default function NamespacesPage() {
         <div>
           <h1 className="page-title">Namespaces</h1>
           <p className="page-subtitle">
-            Namespaces created by this panel inside{" "}
-            <strong style={{ color: "var(--text-primary)" }}>
-              {clusterName || `cluster #${clusterId}`}
-            </strong>
-            .
+            managed by this panel inside {clusterName || `cluster #${clusterId}`}
           </p>
         </div>
         <DodgeButton className="btn btn-primary" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? "Cancel" : "+ New namespace"}
+          {showForm ? <X size={14} /> : <Plus size={14} />}
+          {showForm ? "Cancel" : "New namespace"}
         </DodgeButton>
       </div>
 
       {showForm && (
         <form className="form-panel" onSubmit={handleSubmit}>
-          <h3 className="form-panel-title">Create a namespace</h3>
+          <h3 className="form-panel-title">
+            <FolderPlus size={14} /> Create a namespace
+          </h3>
           <ErrorBanner message={formError} />
           <div className="form-grid">
             <div className="field">
               <label>Name</label>
-              <input
-                placeholder="staging"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+              <input placeholder="staging" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
           </div>
           <div className="form-actions">
@@ -134,7 +130,7 @@ export default function NamespacesPage() {
         <LoadingRow label="Loading namespaces..." />
       ) : namespaces.length === 0 ? (
         <EmptyState
-          icon="📁"
+          icon={FolderTree}
           title="No namespaces yet"
           description="Create a namespace to start deploying apps into this cluster."
         />
@@ -151,11 +147,14 @@ export default function NamespacesPage() {
                 }
               >
                 <div className="card-header">
-                  <h3 className="card-title">{ns.name}</h3>
+                  <h3 className="card-title">
+                    <FolderTree size={17} color="var(--accent-2)" />
+                    {ns.name}
+                  </h3>
                   <StatusBadge status={ns.status} />
                 </div>
                 <div className="card-meta">
-                  <div className="card-meta-row">Namespace #{ns.id}</div>
+                  <div className="card-meta-row">namespace #{ns.id}</div>
                 </div>
               </div>
               <div className="card-actions">
@@ -167,13 +166,10 @@ export default function NamespacesPage() {
                     })
                   }
                 >
-                  View apps →
+                  apps <ArrowRight size={12} />
                 </button>
-                <button
-                  className="btn btn-sm btn-danger"
-                  onClick={() => setDeleteTarget(ns)}
-                >
-                  Delete
+                <button className="btn btn-sm btn-danger" onClick={() => setDeleteTarget(ns)}>
+                  <Trash2 size={12} /> delete
                 </button>
               </div>
             </div>

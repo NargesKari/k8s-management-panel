@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Server, Plus, X, ArrowRight, Network, Boxes } from "lucide-react";
 import api, { extractErrorMessage } from "../api/client.js";
 import { LoadingRow, ErrorBanner, EmptyState } from "../components/StateViews.jsx";
 import DodgeButton from "../chaos/DodgeButton.jsx";
@@ -52,17 +53,20 @@ export default function ClustersPage() {
         <div>
           <h1 className="page-title">Clusters</h1>
           <p className="page-subtitle">
-            Kubernetes clusters registered with this panel. Select one to manage its namespaces.
+            registered kubernetes clusters // select one to manage namespaces
           </p>
         </div>
         <DodgeButton className="btn btn-primary" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? "Cancel" : "+ New cluster"}
+          {showForm ? <X size={14} /> : <Plus size={14} />}
+          {showForm ? "Cancel" : "New cluster"}
         </DodgeButton>
       </div>
 
       {showForm && (
         <form className="form-panel" onSubmit={handleSubmit}>
-          <h3 className="form-panel-title">Register a new cluster</h3>
+          <h3 className="form-panel-title">
+            <Server size={14} /> Register a new cluster
+          </h3>
           <ErrorBanner message={formError} />
           <div className="form-grid">
             <div className="field">
@@ -105,7 +109,7 @@ export default function ClustersPage() {
         <LoadingRow label="Loading clusters..." />
       ) : clusters.length === 0 ? (
         <EmptyState
-          icon="🗂️"
+          icon={Boxes}
           title="No clusters yet"
           description="Register your first cluster's API address and service account token to get started."
         />
@@ -118,16 +122,22 @@ export default function ClustersPage() {
               onClick={() => navigate(`/clusters/${c.id}`, { state: { clusterName: c.name } })}
             >
               <div className="card-header">
-                <h3 className="card-title">{c.name}</h3>
+                <h3 className="card-title">
+                  <Server size={17} color="var(--accent)" />
+                  {c.name}
+                </h3>
               </div>
               <div className="card-meta">
-                <div className="card-meta-row mono">{c.address}</div>
+                <div className="card-meta-row">
+                  <Network size={13} />
+                  {c.address}
+                </div>
               </div>
               <div className="card-footer">
-                <span style={{ fontSize: 12.5, color: "var(--text-tertiary)" }}>
-                  Cluster #{c.id}
+                <span style={{ color: "var(--text-tertiary)" }}>Cluster #{c.id}</span>
+                <span className="go">
+                  namespaces <ArrowRight size={13} />
                 </span>
-                <span style={{ fontSize: 13, color: "var(--accent)" }}>View namespaces →</span>
               </div>
             </div>
           ))}

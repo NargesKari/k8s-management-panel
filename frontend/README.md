@@ -142,29 +142,45 @@ After that, the whole app is reachable at a single address:
 - `http://kari.osdl.ir/` → this frontend
 - `http://kari.osdl.ir/backend/...` → the Django API
 
-## "Chaos mode" (an easter egg)
+## "Chaos mode" (an easter egg / mini-game)
 
 Because a plain admin panel is boring, this build ships with a small,
-self-contained set of playful UI behaviors, all under `src/chaos/`:
+self-contained game layered on top of the real UI, all under `src/chaos/`:
 
-- **`Creature.jsx`** — an original cute blob-creature (see `CreatureSvg.jsx`;
-  it is *not* a reproduction of any copyrighted character) peeks out from a
-  random edge of the screen roughly every 7–13 seconds, wiggles for a
-  couple of seconds, then retreats.
+- **`Creature.jsx`** + **`CreatureSvg.jsx`** — an original creature (not a
+  reproduction of any copyrighted character) peeks out from a random edge
+  of the screen roughly every 7–13 seconds. About 70% of the time it's the
+  friendly green one; the rest of the time it's a purple horned variant.
+  While either is on screen, the cursor turns into a hammer
+  (`body.cursor-hammer` in `index.css`).
+  - Hit the **green** one → +1 life (capped at 5).
+  - Hit the **purple** one → −1 life.
+  - Let a **green** one retreat unclicked → −1 life. (Ignoring the purple
+    one is free.)
+- **`LivesHud.jsx`** — replaces the old "Kubernetes management console"
+  subtitle with 5 colored hearts in the top bar, one per life.
+- **`Skeleton.jsx`** — every 5 minutes, a skeleton strides straight across
+  the screen from a random side. Clicking it instantly drains all lives.
+- **`LockOverlay.jsx`** — when lives hit 0, a cracked-glass, semi-opaque
+  layer covers the entire page and blocks every interaction for 60
+  seconds. It then lifts and grants back 1 life.
 - **`DodgeButton.jsx`** — wraps the three main "+ New ..." buttons
   (create cluster / namespace / app). Whenever the cursor gets close, the
-  button jumps to a random nearby spot. Because the jump target is random
-  rather than deliberately pointer-avoiding, it occasionally lands right
-  under the cursor — which is the only moment it can actually be clicked.
+  button jumps to a random nearby spot. The jump target is random rather
+  than pointer-avoiding, so it occasionally lands right under the cursor —
+  the only moment it's actually clickable. (Tuned to be fast and
+  hard to catch — see the constants at the top of the file.)
 - **`ChaosButton.jsx` + `SudokuModal.jsx`** — a red 🛑 button fixed to the
-  bottom-right corner opens a classic 9×9 Sudoku. Solving it calls
-  `disableChaos(30)`, which pauses the creature and the dodging buttons for
-  30 minutes (persisted in `localStorage`, so it survives a page refresh).
+  bottom-right corner opens a classic 9×9 Sudoku. While it's open, the
+  creature and skeleton stop spawning so you can concentrate. Solving it
+  calls `disableChaos(30)`, pausing the dodging buttons and spawns for 30
+  minutes (persisted in `localStorage`).
 
-All of this is gated by a single `ChaosContext` (`chaos/ChaosContext.jsx`),
-so disabling or removing the whole feature is a one-line change: drop
-`<ChaosProvider>` from `main.jsx` and the `<Creature />` / `<ChaosButton />`
-tags from `App.jsx`.
+All of it is gated by a single `ChaosContext` (`chaos/ChaosContext.jsx`),
+which tracks lives, the lock state, the sudoku-open flag, and the 30-minute
+calm window. Disabling or removing the whole feature is a one-line change:
+drop `<ChaosProvider>` from `main.jsx` and the chaos component tags from
+`App.jsx`.
 
 ## Design notes
 

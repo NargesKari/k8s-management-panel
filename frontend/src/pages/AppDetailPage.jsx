@@ -1,5 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import {
+  Box,
+  RefreshCw,
+  Pencil,
+  Trash2,
+  Container,
+  Cpu,
+  MemoryStick,
+  Layers,
+  Hash,
+  CircleDot,
+  Settings2,
+} from "lucide-react";
 import api, { extractErrorMessage } from "../api/client.js";
 import { LoadingRow, ErrorBanner } from "../components/StateViews.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
@@ -90,10 +103,7 @@ export default function AppDetailPage() {
           ...(clusterId
             ? [{ label: clusterName || `Cluster #${clusterId}`, to: `/clusters/${clusterId}` }]
             : []),
-          {
-            label: namespaceName || app?.namespace || "Namespace",
-            to: namespaceLink,
-          },
+          { label: namespaceName || app?.namespace || "Namespace", to: namespaceLink },
           { label: app?.name || `App #${appId}` },
         ]}
       />
@@ -106,23 +116,23 @@ export default function AppDetailPage() {
         <>
           <div className="page-header">
             <div>
-              <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <h1 className="page-title">
                 {app.name}
                 <StatusBadge status={app.status} />
               </h1>
-              <p className="page-subtitle">
-                Running in namespace <strong style={{ color: "var(--text-primary)" }}>{app.namespace}</strong>
-              </p>
+              <p className="page-subtitle">running in namespace {app.namespace}</p>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button className="btn" onClick={() => fetchApp(true)} disabled={refreshing}>
-                {refreshing ? <span className="spinner" /> : "↻ Refresh"}
+                {refreshing ? <span className="spinner" /> : <RefreshCw size={13} />}
+                refresh
               </button>
               <button className="btn" onClick={() => setEditing((s) => !s)}>
-                {editing ? "Cancel edit" : "Edit"}
+                <Pencil size={13} />
+                {editing ? "cancel" : "edit"}
               </button>
               <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>
-                Delete
+                <Trash2 size={13} /> delete
               </button>
             </div>
           </div>
@@ -131,7 +141,9 @@ export default function AppDetailPage() {
 
           {editing && (
             <form className="form-panel" onSubmit={handleSave}>
-              <h3 className="form-panel-title">Edit app configuration</h3>
+              <h3 className="form-panel-title">
+                <Settings2 size={14} /> Edit app configuration
+              </h3>
               <ErrorBanner message={formError} />
               <div className="form-grid">
                 <div className="field">
@@ -152,10 +164,7 @@ export default function AppDetailPage() {
                 </div>
                 <div className="field">
                   <label>CPU</label>
-                  <input
-                    value={form.cpu}
-                    onChange={(e) => setForm({ ...form, cpu: e.target.value })}
-                  />
+                  <input value={form.cpu} onChange={(e) => setForm({ ...form, cpu: e.target.value })} />
                 </div>
                 <div className="field">
                   <label>Memory</label>
@@ -175,50 +184,65 @@ export default function AppDetailPage() {
 
           <div className="detail-grid">
             <div className="card">
-              <h3 className="card-title" style={{ marginBottom: 14 }}>
-                Pods
+              <h3 className="card-title" style={{ marginBottom: 16 }}>
+                <Layers size={16} color="var(--accent-2)" /> Pods
               </h3>
               {app.pods && app.pods.length > 0 ? (
                 <div className="pod-list">
                   {app.pods.map((pod) => (
                     <div key={pod.name} className="pod-row">
-                      <span className="pod-name">{pod.name}</span>
+                      <span className="pod-name">
+                        <CircleDot size={12} />
+                        {pod.name}
+                      </span>
                       <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ color: "var(--text-secondary)" }}>{pod.phase}</span>
+                        <span style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 11 }}>
+                          {pod.phase}
+                        </span>
                         <StatusBadge status={pod.ready ? "Ready" : "Not Ready"} />
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+                <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>
                   No pods found yet — they may still be scheduling.
                 </p>
               )}
             </div>
 
             <div className="card">
-              <h3 className="card-title" style={{ marginBottom: 14 }}>
-                Configuration
+              <h3 className="card-title" style={{ marginBottom: 16 }}>
+                <Settings2 size={16} color="var(--accent)" /> Configuration
               </h3>
               <div className="stat-row">
-                <span className="stat-label">Image</span>
+                <span className="stat-label">
+                  <Container size={12} /> Image
+                </span>
                 <span className="stat-value">{app.image}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">Replicas</span>
+                <span className="stat-label">
+                  <Layers size={12} /> Replicas
+                </span>
                 <span className="stat-value">{app.replicas}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">CPU</span>
+                <span className="stat-label">
+                  <Cpu size={12} /> CPU
+                </span>
                 <span className="stat-value">{app.cpu}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">Memory</span>
+                <span className="stat-label">
+                  <MemoryStick size={12} /> Memory
+                </span>
                 <span className="stat-value">{app.memory}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">App ID</span>
+                <span className="stat-label">
+                  <Hash size={12} /> App ID
+                </span>
                 <span className="stat-value">#{app.id}</span>
               </div>
             </div>

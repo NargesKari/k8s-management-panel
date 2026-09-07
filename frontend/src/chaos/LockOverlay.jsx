@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import { useChaos } from "./ChaosContext.jsx";
 
 export default function LockOverlay() {
@@ -9,9 +10,11 @@ export default function LockOverlay() {
   return (
     <div className="lock-overlay">
       <div className="lock-content">
-        <div className="lock-icon">🔒</div>
+        <div className="lock-icon">
+          <Lock size={46} strokeWidth={1.5} />
+        </div>
         <div className="lock-title">Screen locked</div>
-        <div className="lock-desc">You ran out of lives. Unlocking in {seconds}s...</div>
+        <div className="lock-desc">Out of lives — unlocking in {seconds}s</div>
       </div>
     </div>
   );

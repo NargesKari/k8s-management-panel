@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { Rocket, Plus, X, ArrowRight, Box, Container, Cpu, MemoryStick, Layers } from "lucide-react";
 import api, { extractErrorMessage } from "../api/client.js";
 import { LoadingRow, ErrorBanner, EmptyState } from "../components/StateViews.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
@@ -82,21 +83,20 @@ export default function AppsPage() {
         <div>
           <h1 className="page-title">Apps</h1>
           <p className="page-subtitle">
-            Deployments running in{" "}
-            <strong style={{ color: "var(--text-primary)" }}>
-              {namespaceName || `namespace #${namespaceId}`}
-            </strong>
-            .
+            deployments in {namespaceName || `namespace #${namespaceId}`}
           </p>
         </div>
         <DodgeButton className="btn btn-primary" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? "Cancel" : "+ New app"}
+          {showForm ? <X size={14} /> : <Plus size={14} />}
+          {showForm ? "Cancel" : "New app"}
         </DodgeButton>
       </div>
 
       {showForm && (
         <form className="form-panel" onSubmit={handleSubmit}>
-          <h3 className="form-panel-title">Deploy a new app</h3>
+          <h3 className="form-panel-title">
+            <Rocket size={14} /> Deploy a new app
+          </h3>
           <ErrorBanner message={formError} />
           <div className="form-grid">
             <div className="field">
@@ -155,7 +155,7 @@ export default function AppsPage() {
         <LoadingRow label="Loading apps..." />
       ) : apps.length === 0 ? (
         <EmptyState
-          icon="🚀"
+          icon={Rocket}
           title="No apps deployed yet"
           description="Deploy your first app to this namespace using the form above."
         />
@@ -174,23 +174,33 @@ export default function AppsPage() {
                 }
               >
                 <div className="card-header">
-                  <h3 className="card-title">{app.name}</h3>
+                  <h3 className="card-title">
+                    <Box size={17} color="var(--accent-3)" />
+                    {app.name}
+                  </h3>
                   <StatusBadge status={app.status} />
                 </div>
                 <div className="card-meta">
-                  <div className="card-meta-row mono">{app.image}</div>
                   <div className="card-meta-row">
-                    {readyPods}/{app.pods?.length ?? 0} pods ready · {app.replicas} replica(s)
+                    <Container size={13} />
+                    {app.image}
                   </div>
                   <div className="card-meta-row">
-                    {app.cpu} CPU · {app.memory} memory
+                    <Layers size={13} />
+                    {readyPods}/{app.pods?.length ?? 0} pods · {app.replicas} replica(s)
+                  </div>
+                  <div className="card-meta-row">
+                    <Cpu size={13} />
+                    {app.cpu}
+                    <MemoryStick size={13} style={{ marginLeft: 6 }} />
+                    {app.memory}
                   </div>
                 </div>
                 <div className="card-footer">
-                  <span style={{ fontSize: 12.5, color: "var(--text-tertiary)" }}>
-                    App #{app.id}
+                  <span style={{ color: "var(--text-tertiary)" }}>App #{app.id}</span>
+                  <span className="go">
+                    manage <ArrowRight size={13} />
                   </span>
-                  <span style={{ fontSize: 13, color: "var(--accent)" }}>Manage →</span>
                 </div>
               </div>
             );
