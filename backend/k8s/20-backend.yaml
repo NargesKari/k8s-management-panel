@@ -25,6 +25,13 @@ spec:
                 name: kari-config
             - secretRef:
                 name: kari-secrets
+          env:
+            # The metrics scraper and probes reach this pod by IP, so Django
+            # needs that IP in ALLOWED_HOSTS (see kari_backend/settings.py).
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
 ---
 apiVersion: v1
 kind: Service

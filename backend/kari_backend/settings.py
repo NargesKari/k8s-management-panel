@@ -7,8 +7,18 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 
+# Kubernetes probes and the VMAgent metrics scraper reach this pod by its
+# IP address, not by the public hostname, so that Host header has to be
+# accepted too or Django answers 400 and no metrics are ever collected.
+# POD_IP is injected by the Downward API (see k8s/20-backend.yaml).
+_POD_IP = os.environ.get("POD_IP")
+if _POD_IP:
+    ALLOWED_HOSTS.append(_POD_IP)
+
+# Cluster-internal service names used by other pods in the namespace.
+ALLOWED_HOSTS += ["localhost", "127.0.0.1", "backend-service"]
+
 INSTALLED_APPS = [
-    "django_prometheus",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -24,7 +34,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -32,7 +41,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "kari_backend.urls"
@@ -61,7 +69,7 @@ WSGI_APPLICATION = "kari_backend.wsgi.application"
 if os.environ.get("POSTGRES_HOST"):
     DATABASES = {
         "default": {
-            "ENGINE": "django_prometheus.db.backends.postgresql",
+            "ENGINE": "django.db.backends.postgresql",
             "NAME": os.environ.get("POSTGRES_DB", "kari"),
             "USER": os.environ.get("POSTGRES_USER", "kari"),
             "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "kari"),
@@ -72,7 +80,7 @@ if os.environ.get("POSTGRES_HOST"):
 else:
     DATABASES = {
         "default": {
-            "ENGINE": "django_prometheus.db.backends.sqlite3",
+            "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
