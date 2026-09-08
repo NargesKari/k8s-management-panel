@@ -1,0 +1,29 @@
+# VictoriaMetrics components expose their own metrics. Scraping them is
+# what makes the community VMSingle / VMAgent Grafana dashboards work.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: vmsingle-self
+  namespace: monitoring-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vmsingle
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: vmagent-self
+  namespace: monitoring-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vmagent
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

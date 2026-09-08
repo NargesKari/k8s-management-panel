@@ -1,0 +1,33 @@
+# VMAlert evaluates alerting rules (VMRule CRDs) against VMSingle and
+# forwards anything that fires to Alertmanager.
+#
+# datasource  -> where to run the queries
+# notifier    -> where to send firing alerts
+# remoteWrite -> lets VMAlert persist its own ALERTS series back into
+#                VMSingle, so alert history is queryable in Grafana
+# remoteRead  -> restores alert state after a restart, so a long-pending
+#                alert isn't reset to zero every time the pod restarts
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAlert
+metadata:
+  name: kari-vmalert
+  namespace: monitoring-system
+spec:
+  replicaCount: 1
+  selectAllByDefault: true
+  evaluationInterval: 15s
+  datasource:
+    url: "http://vmsingle-kari-vmsingle.monitoring-system.svc:8429"
+  remoteWrite:
+    url: "http://vmsingle-kari-vmsingle.monitoring-system.svc:8429"
+  remoteRead:
+    url: "http://vmsingle-kari-vmsingle.monitoring-system.svc:8429"
+  notifiers:
+    - url: "http://vmalertmanager-kari-alertmanager.monitoring-system.svc:9093"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi

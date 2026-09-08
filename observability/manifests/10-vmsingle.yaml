@@ -1,0 +1,25 @@
+# VMSingle is the all-in-one VictoriaMetrics database: it receives metrics
+# pushed by VMAgent and answers PromQL/MetricsQL queries from Grafana and
+# VMAlert. Single-node is the right choice here - one small cluster, one
+# team, no need for the sharded VMCluster topology.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMSingle
+metadata:
+  name: kari-vmsingle
+  namespace: monitoring-system
+spec:
+  retentionPeriod: "7d"
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 768Mi
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 5Gi

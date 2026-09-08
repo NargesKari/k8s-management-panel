@@ -1,0 +1,54 @@
+groups:
+  - name: pipeline-test
+    interval: 15s
+    rules:
+      - alert: AlwaysFiring
+        expr: vector(1) > 0
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: "Pipeline smoke test - this alert always fires by design"
+
+  - name: kari-backend
+    interval: 30s
+    rules:
+      - alert: KubernetesOperationErrorRateHigh
+        expr: (sum(rate(hamamooz_kubernetes_operations_total{outcome="error"}[5m])) / clamp_min(sum(rate(hamamooz_kubernetes_operations_total[5m])), 0.001)) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Kubernetes operation error rate"
+
+      - alert: KubernetesOperationSlow
+        expr: histogram_quantile(0.95, sum(rate(hamamooz_kubernetes_operation_duration_seconds_bucket[5m])) by (le)) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kubernetes operations are slow"
+
+      - alert: BackupFailuresDetected
+        expr: increase(hamamooz_backup_jobs_total{outcome="failed"}[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backup job(s) failed"
+
+      - alert: BackupsStuck
+        expr: hamamooz_backups_in_progress > 0 and increase(hamamooz_backup_jobs_total[15m]) == 0
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backups appear stuck"
+
+      - alert: BackendDown
+        expr: up{job="kari-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend target is down"

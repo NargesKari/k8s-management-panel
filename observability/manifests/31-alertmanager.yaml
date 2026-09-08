@@ -1,0 +1,37 @@
+# Alertmanager receives firing alerts from VMAlert, groups them and routes
+# them to a receiver.
+#
+# The receiver below is a webhook pointing at a tiny in-cluster sink
+# (see 32-alert-sink.yaml) whose only job is to log what it receives. That
+# makes the full flow verifiable end to end without needing email/Slack
+# credentials: fire an alert -> watch it arrive -> read it in the sink's
+# pod logs. Swap `webhook_configs` for `slack_configs` / `email_configs`
+# to route somewhere real.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAlertmanager
+metadata:
+  name: kari-alertmanager
+  namespace: monitoring-system
+spec:
+  replicaCount: 1
+  configRawYaml: |
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ["alertname", "severity"]
+      group_wait: 10s
+      group_interval: 30s
+      repeat_interval: 5m
+      receiver: "log-sink"
+    receivers:
+      - name: "log-sink"
+        webhook_configs:
+          - url: "http://alert-sink.monitoring-system.svc:8080/"
+            send_resolved: true
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 192Mi

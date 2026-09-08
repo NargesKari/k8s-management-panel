@@ -1,6 +1,6 @@
 import os
+import time
 import datetime
-import base64
 
 from celery import shared_task
 from django.conf import settings
@@ -8,6 +8,11 @@ from django.utils import timezone
 from kubernetes.stream import stream
 
 from kari_backend.kube_utils import core_v1
+from kari_backend.metrics import (
+    BACKUP_JOBS_TOTAL,
+    BACKUP_DURATION_SECONDS,
+    BACKUPS_IN_PROGRESS,
+)
 
 from .models import Backup, generate_backup_id
 
@@ -29,6 +34,12 @@ def run_backup_task(self, backup_pk):
     backup.started_at = timezone.now()
     backup.save(update_fields=["status", "started_at"])
 
+    # Concurrency gauge: incremented for the whole lifetime of the job and
+    # decremented in the finally block below, so it always reflects how
+    # many backups are actually executing right now.
+    BACKUPS_IN_PROGRESS.inc()
+    started_monotonic = time.perf_counter()
+
     app = backup.app
     cluster = app.namespace.cluster
     core_api = core_v1(cluster)
@@ -41,7 +52,7 @@ def run_backup_task(self, backup_pk):
     try:
         pod = _find_pod_for_app(core_api, app)
 
-        exec_command = ["sh", "-c", f"tar czf - {backup.source_path} | base64"]
+        exec_command = ["tar", "czf", "-", backup.source_path]
         resp = stream(
             core_api.connect_get_namespaced_pod_exec,
             pod.metadata.name,
@@ -54,32 +65,36 @@ def run_backup_task(self, backup_pk):
             _preload_content=False,
         )
 
-        b64_chunks = []
-        while resp.is_open():
-            resp.update(timeout=5)
-            if resp.peek_stdout():
-                b64_chunks.append(resp.read_stdout())
-            if resp.peek_stderr():
-                # Drain stderr (e.g. tar path warnings) - useful for debugging.
-                resp.read_stderr()
-        resp.close()
-
-        raw_bytes = base64.b64decode("".join(b64_chunks))
         with open(out_file, "wb") as f:
-            f.write(raw_bytes)
+            while resp.is_open():
+                resp.update(timeout=5)
+                if resp.peek_stdout():
+                    f.write(resp.read_stdout(binary=True))
+                if resp.peek_stderr():
+                    # Drain stderr (e.g. tar path warnings) - useful for debugging.
+                    resp.read_stderr()
+        resp.close()
 
         backup.status = Backup.Status.COMPLETED
         backup.file_path = out_file
         backup.finished_at = timezone.now()
         backup.save(update_fields=["status", "file_path", "finished_at"])
 
+        BACKUP_JOBS_TOTAL.labels(outcome="completed").inc()
+
     except Exception as exc:
         backup.status = Backup.Status.FAILED
         backup.error_message = str(exc)
         backup.finished_at = timezone.now()
         backup.save(update_fields=["status", "error_message", "finished_at"])
+
+        BACKUP_JOBS_TOTAL.labels(outcome="failed").inc()
         # Bounded, controlled retry; once retries are exhausted it stays failed.
         raise self.retry(exc=exc)
+
+    finally:
+        BACKUPS_IN_PROGRESS.dec()
+        BACKUP_DURATION_SECONDS.observe(time.perf_counter() - started_monotonic)
 
 
 @shared_task

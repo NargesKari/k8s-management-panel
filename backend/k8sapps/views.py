@@ -5,6 +5,7 @@ from rest_framework import status
 
 from namespaces.models import Namespace
 from kari_backend.kube_utils import core_v1, apps_v1
+from kari_backend.metrics import track_kubernetes_operation
 
 from .models import K8sApp
 from .serializers import K8sAppCreateSerializer, K8sAppUpdateSerializer
@@ -56,7 +57,8 @@ class K8sAppListCreateView(APIView):
         manifest = build_deployment_manifest(app)
 
         try:
-            apps_api.create_namespaced_deployment(namespace.name, manifest)
+            with track_kubernetes_operation("app", "create"):
+                apps_api.create_namespaced_deployment(namespace.name, manifest)
         except ApiException as e:
             if e.status == 409:
                 return Response(
@@ -83,8 +85,10 @@ class K8sAppListCreateView(APIView):
                 {"detail": "The namespace_id query parameter is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        apps = K8sApp.objects.filter(namespace_id=namespace_id)
-        return Response([_serialize_with_live_status(a) for a in apps])
+        with track_kubernetes_operation("app", "list"):
+            apps = list(K8sApp.objects.filter(namespace_id=namespace_id))
+            payload = [_serialize_with_live_status(a) for a in apps]
+        return Response(payload)
 
 
 class K8sAppDetailView(APIView):
@@ -113,7 +117,8 @@ class K8sAppDetailView(APIView):
         apps_api = apps_v1(app.namespace.cluster)
         manifest = build_deployment_manifest(app)
         try:
-            apps_api.patch_namespaced_deployment(app.name, app.namespace.name, manifest)
+            with track_kubernetes_operation("app", "update"):
+                apps_api.patch_namespaced_deployment(app.name, app.namespace.name, manifest)
         except ApiException:
             return Response(
                 {"detail": "Failed to update the Deployment in Kubernetes."},
@@ -131,7 +136,8 @@ class K8sAppDetailView(APIView):
 
         apps_api = apps_v1(app.namespace.cluster)
         try:
-            apps_api.delete_namespaced_deployment(app.name, app.namespace.name)
+            with track_kubernetes_operation("app", "delete"):
+                apps_api.delete_namespaced_deployment(app.name, app.namespace.name)
         except ApiException as e:
             if e.status != 404:
                 return Response(

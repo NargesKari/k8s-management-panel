@@ -1,0 +1,25 @@
+# VMAgent is the collector. It discovers scrape targets through the
+# VMServiceScrape / VMPodScrape CRDs, pulls /metrics from them, and
+# remote-writes everything into VMSingle.
+#
+# selectAllByDefault: true means it picks up every VMServiceScrape in the
+# cluster. That is deliberate for this setup (few, known scrape configs);
+# a larger environment would use explicit label selectors instead.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAgent
+metadata:
+  name: kari-vmagent
+  namespace: monitoring-system
+spec:
+  selectAllByDefault: true
+  scrapeInterval: 15s
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  remoteWrite:
+    - url: "http://vmsingle-kari-vmsingle.monitoring-system.svc:8429/api/v1/write"

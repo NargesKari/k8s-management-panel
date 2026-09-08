@@ -1,0 +1,192 @@
+{
+  "title": "Kari Panel - Application Metrics",
+  "uid": "kari-app-metrics",
+  "tags": ["kari", "hamamooz"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Kubernetes operations",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Operation rate by outcome",
+      "description": "How many Kubernetes operations are happening, split into success vs error. The error series rising is the primary failure signal for the panel.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 12, "lineWidth": 2 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(hamamooz_kubernetes_operations_total[5m]))",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Operation rate by resource and verb",
+      "description": "Same counter, broken down by which resource (cluster/namespace/app) and which verb (create/list/update/delete) is being exercised.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 8, "lineWidth": 2 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum by (resource, operation) (rate(hamamooz_kubernetes_operations_total[5m]))",
+          "legendFormat": "{{resource}} / {{operation}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Error ratio (5m)",
+      "description": "Share of Kubernetes operations ending in error. This is the SLO-style number to watch.",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 9 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.2 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(hamamooz_kubernetes_operations_total{outcome=\"error\"}[5m])) / clamp_min(sum(rate(hamamooz_kubernetes_operations_total[5m])), 0.001)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Operation latency percentiles",
+      "description": "p50 / p95 / p99 duration of Kubernetes operations, derived from the histogram. Rising p95 usually means a slow or overloaded API server.",
+      "gridPos": { "h": 8, "w": 18, "x": 6, "y": 9 },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 0, "lineWidth": 2 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(hamamooz_kubernetes_operation_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(hamamooz_kubernetes_operation_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(hamamooz_kubernetes_operation_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Backups",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 }
+    },
+    {
+      "type": "stat",
+      "title": "Backups in progress",
+      "description": "Live gauge of backup jobs currently executing in the Celery worker. Stuck at a non-zero value with nothing completing means the queue is wedged.",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 18 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "orange", "value": 5 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "sum(hamamooz_backups_in_progress)", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Backup jobs by outcome",
+      "description": "Rate of backup jobs reaching a terminal state, split completed vs failed.",
+      "gridPos": { "h": 6, "w": 9, "x": 6, "y": 18 },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 15, "lineWidth": 2 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(hamamooz_backup_jobs_total[5m]))",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Backup duration percentiles",
+      "description": "How long backups take end to end. A slow upward trend usually means growing data volumes rather than a fault.",
+      "gridPos": { "h": 6, "w": 9, "x": 15, "y": 18 },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 0, "lineWidth": 2 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(hamamooz_backup_duration_seconds_bucket[10m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(hamamooz_backup_duration_seconds_bucket[10m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Total backups completed",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 24 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "fixedColor": "green", "mode": "fixed" } }, "overrides": [] },
+      "targets": [{ "expr": "sum(hamamooz_backup_jobs_total{outcome=\"completed\"})", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Total backups failed",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 24 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "fixedColor": "red", "mode": "fixed" } }, "overrides": [] },
+      "targets": [{ "expr": "sum(hamamooz_backup_jobs_total{outcome=\"failed\"})", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Scrape target health (up)",
+      "description": "1 = VMAgent can reach the target, 0 = it cannot. Useful to confirm the whole collection pipeline is alive.",
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 24 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "max": 1, "min": 0, "custom": { "fillOpacity": 20, "lineWidth": 2 } },
+        "overrides": []
+      },
+      "targets": [{ "expr": "up", "legendFormat": "{{job}}", "refId": "A" }]
+    }
+  ]
+}

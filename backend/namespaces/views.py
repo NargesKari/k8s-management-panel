@@ -7,6 +7,7 @@ from rest_framework import status
 
 from clusters.models import Cluster
 from kari_backend.kube_utils import core_v1
+from kari_backend.metrics import track_kubernetes_operation
 
 from .models import Namespace
 from .serializers import NamespaceCreateSerializer, NamespaceSerializer
@@ -39,7 +40,8 @@ class NamespaceListCreateView(APIView):
         body = k8s_lib.V1Namespace(metadata=k8s_lib.V1ObjectMeta(name=name))
 
         try:
-            api.create_namespace(body)
+            with track_kubernetes_operation("namespace", "create"):
+                api.create_namespace(body)
         except ApiException as e:
             if e.status == 409:
                 return Response(
@@ -77,7 +79,8 @@ class NamespaceListCreateView(APIView):
                 {"detail": "The cluster_id query parameter is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        namespaces = Namespace.objects.filter(cluster_id=cluster_id)
+        with track_kubernetes_operation("namespace", "list"):
+            namespaces = list(Namespace.objects.filter(cluster_id=cluster_id))
         return Response(NamespaceSerializer(namespaces, many=True).data)
 
 
@@ -106,7 +109,8 @@ class NamespaceDeleteView(APIView):
             api = core_v1(cluster)
 
             try:
-                api.delete_namespace(ns.name)
+                with track_kubernetes_operation("namespace", "delete"):
+                    api.delete_namespace(ns.name)
             except ApiException as e:
                 if e.status == 404:
                     # Already gone from Kubernetes; just clean up the DB record.

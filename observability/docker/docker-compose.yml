@@ -1,0 +1,74 @@
+# Fallback stack: the whole observability pipeline without Kubernetes.
+# Useful if the cluster is unavailable (the task explicitly allows this).
+#
+#   docker compose up -d
+#
+# The backend is expected to be reachable at host.docker.internal:8000
+# (i.e. the Django app running via the backend/docker-compose.yml).
+services:
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.102.0
+    command:
+      - "--storageDataPath=/storage"
+      - "--retentionPeriod=7d"
+      - "--httpListenAddr=:8428"
+    ports:
+      - "8428:8428"
+    volumes:
+      - vm_data:/storage
+
+  vmagent:
+    image: victoriametrics/vmagent:v1.102.0
+    depends_on:
+      - victoriametrics
+    command:
+      - "--promscrape.config=/etc/vmagent/scrape.yml"
+      - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
+    volumes:
+      - ./vmagent-scrape.yml:/etc/vmagent/scrape.yml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  vmalert:
+    image: victoriametrics/vmalert:v1.102.0
+    depends_on:
+      - victoriametrics
+      - alertmanager
+    command:
+      - "--datasource.url=http://victoriametrics:8428"
+      - "--remoteWrite.url=http://victoriametrics:8428"
+      - "--remoteRead.url=http://victoriametrics:8428"
+      - "--notifier.url=http://alertmanager:9093"
+      - "--rule=/etc/vmalert/rules.yml"
+      - "--evaluationInterval=15s"
+    volumes:
+      - ./vmalert-rules.yml:/etc/vmalert/rules.yml:ro
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    depends_on:
+      - victoriametrics
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: kari-admin-123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./grafana-dashboard-providers.yml:/etc/grafana/provisioning/dashboards/providers.yml:ro
+      - ../dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  vm_data:
+  grafana_data:

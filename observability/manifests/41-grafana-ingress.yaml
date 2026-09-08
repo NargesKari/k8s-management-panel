@@ -1,0 +1,25 @@
+# Exposes Grafana at http://kari.osdl.ir/grafana
+#
+# No stripPrefix middleware here: Grafana is told about the sub-path via
+# GF_SERVER_SERVE_FROM_SUB_PATH / GF_SERVER_ROOT_URL (see 40-grafana.yaml),
+# so it generates its own asset and API URLs with the /grafana prefix
+# already included. Stripping it would break those links.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  namespace: monitoring-system
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: kari.osdl.ir
+      http:
+        paths:
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000

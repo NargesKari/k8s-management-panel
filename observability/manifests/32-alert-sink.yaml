@@ -1,0 +1,81 @@
+# A minimal webhook receiver used to prove the alerting pipeline works.
+# It accepts Alertmanager's POST and prints the payload, so the whole flow
+# (rule fires -> VMAlert -> Alertmanager -> receiver) can be verified with:
+#
+#   kubectl logs -n monitoring-system deployment/alert-sink -f
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alert-sink-script
+  namespace: monitoring-system
+data:
+  sink.py: |
+    import http.server
+    import json
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", 0))
+            raw = self.rfile.read(length)
+            try:
+                payload = json.loads(raw)
+                for alert in payload.get("alerts", []):
+                    print(
+                        "ALERT [{}] {} :: {}".format(
+                            alert.get("status"),
+                            alert.get("labels", {}).get("alertname"),
+                            alert.get("annotations", {}).get("summary", ""),
+                        ),
+                        flush=True,
+                    )
+            except Exception as exc:
+                print("failed to parse payload:", exc, flush=True)
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        def log_message(self, *args):
+            pass
+
+    http.server.HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-sink
+  namespace: monitoring-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-sink
+  template:
+    metadata:
+      labels:
+        app: alert-sink
+    spec:
+      containers:
+        - name: sink
+          image: python:3.12-slim
+          command: ["python", "/app/sink.py"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: script
+              mountPath: /app
+      volumes:
+        - name: script
+          configMap:
+            name: alert-sink-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-sink
+  namespace: monitoring-system
+spec:
+  selector:
+    app: alert-sink
+  ports:
+    - port: 8080
+      targetPort: 8080

@@ -1,0 +1,88 @@
+# Alerting rules evaluated by VMAlert.
+#
+# The first rule is the deliberate always-firing test alert the task asks
+# for: `vector(1) > 0` is true on every evaluation, so it reliably walks
+# the whole pipeline and proves delivery works. The rest are real rules
+# built on the hamamooz_* metrics the backend exposes.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: kari-rules
+  namespace: monitoring-system
+spec:
+  groups:
+    - name: pipeline-test
+      interval: 15s
+      rules:
+        - alert: AlwaysFiring
+          expr: vector(1) > 0
+          for: 0m
+          labels:
+            severity: info
+          annotations:
+            summary: "Pipeline smoke test - this alert always fires by design"
+            description: "If you can see this in Alertmanager, the VMAlert -> Alertmanager path works."
+
+    - name: kari-backend
+      interval: 30s
+      rules:
+        - alert: KubernetesOperationErrorRateHigh
+          # More than 20% of Kubernetes operations failing over 5 minutes.
+          expr: |
+            (
+              sum(rate(hamamooz_kubernetes_operations_total{outcome="error"}[5m]))
+              /
+              clamp_min(sum(rate(hamamooz_kubernetes_operations_total[5m])), 0.001)
+            ) > 0.2
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High Kubernetes operation error rate"
+            description: "More than 20% of Kubernetes operations have been failing for 2 minutes."
+
+        - alert: KubernetesOperationSlow
+          # p95 latency of Kubernetes calls above 5s.
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum(rate(hamamooz_kubernetes_operation_duration_seconds_bucket[5m])) by (le)
+            ) > 5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Kubernetes operations are slow"
+            description: "p95 latency of Kubernetes operations has been above 5s for 5 minutes."
+
+        - alert: BackupFailuresDetected
+          expr: increase(hamamooz_backup_jobs_total{outcome="failed"}[10m]) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Backup job(s) failed"
+            description: "At least one backup job failed in the last 10 minutes."
+
+        - alert: BackupsStuck
+          # Backups in progress but nothing completing - the exact symptom
+          # of a wedged queue or a dead worker.
+          expr: |
+            hamamooz_backups_in_progress > 0
+            and
+            increase(hamamooz_backup_jobs_total[15m]) == 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Backups appear stuck"
+            description: "Backups have been in progress for 15 minutes with no job reaching a terminal state."
+
+        - alert: BackendDown
+          expr: up{job=~".*backend.*"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Backend target is down"
+            description: "VMAgent has not been able to scrape the backend for 2 minutes."

@@ -18,7 +18,8 @@ spec:
           image: ghcr.io/nargeskari/kari-backend:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8000
+            - name: http
+              containerPort: 8000
           envFrom:
             - configMapRef:
                 name: kari-config
@@ -30,9 +31,12 @@ kind: Service
 metadata:
   name: backend-service
   namespace: kari-panel
+  labels:
+    app: backend
 spec:
   selector:
     app: backend
   ports:
-    - port: 8000
-      targetPort: 8000
+    - name: http
+      port: 8000
+      targetPort: http

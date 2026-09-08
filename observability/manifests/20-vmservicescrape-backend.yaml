@@ -1,0 +1,20 @@
+# Tells VMAgent to scrape the Django backend's /metrics endpoint.
+# The selector matches the backend Service in the kari-panel namespace;
+# namespaceSelector is required because VMAgent lives in a different
+# namespace than the target.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: kari-backend
+  namespace: monitoring-system
+spec:
+  namespaceSelector:
+    matchNames:
+      - kari-panel
+  selector:
+    matchLabels:
+      app: backend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

@@ -1,0 +1,73 @@
+# --- Iteration 2: securing the pipeline ---------------------------------
+#
+# The first iteration got metrics flowing. This file tightens who is
+# allowed to talk to what, which is the "secure it" step of the task.
+#
+# 1. VMSingle only accepts traffic from the components that legitimately
+#    need it: VMAgent (writes), VMAlert (reads), Grafana (reads).
+#    Nothing else in the cluster can read or write the metrics database.
+# 2. The backend's /metrics endpoint only accepts scrapes from VMAgent,
+#    not from arbitrary pods.
+#
+# Note: k3s ships with flannel, which does NOT enforce NetworkPolicy by
+# default. These policies are still correct and portable, but on a stock
+# k3s install they are advisory - verify with `kubectl get networkpolicy`
+# and test enforcement before relying on them. Installing Calico or
+# starting k3s with a policy-capable CNI makes them effective.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vmsingle-restrict-ingress
+  namespace: monitoring-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vmsingle
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vmagent
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vmalert
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - protocol: TCP
+          port: 8429
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-metrics-restrict
+  namespace: kari-panel
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    # Normal application traffic from the ingress controller stays open.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Scrapes are only accepted from VMAgent in the monitoring namespace.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vmagent
+      ports:
+        - protocol: TCP
+          port: 8000
